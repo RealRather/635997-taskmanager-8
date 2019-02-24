@@ -1,6 +1,8 @@
 'use strict';
 
-const COUNT_CARD = 7;
+const COUNT_CARDS = 7;
+const MIN_RANDOM_VALUE = 1;
+const MAX_RANDOM_VALUE = 50;
 
 const filters = {
   all: `ALL`,
@@ -12,46 +14,13 @@ const filters = {
   archive: `ARCHIVE`
 };
 
-const filtersBlock = document.querySelector(`.main__filter`);
+const mainFiltersBlock = document.querySelector(`.main__filter`);
 const boardTasksBlock = document.querySelector(`.board__tasks`);
 
-const createFilter = ((filterId, filterName, inputState = ``) => `
-<input 
-  type="radio" id="filter__${filterId}" 
-  class="filter__input visually-hidden" 
-  name="filter" ${inputState}
->
-<label 
-  for="filter__${filterId}" 
-  class="filter__label">${filterName}
-  <span class="filter__${filterId}-count">5</span>
-</label>
-`);
+const getRandomFixValue = ((minValue, maxValue) => Math.floor(Math.random() * (maxValue - minValue + 1)) + minValue);
 
-const createFiltersElements = function (filtersObj) {
-  const filtersKeys = Object.keys(filtersObj);
-  const filterElements = filtersKeys
-    .map((key) => {
-      let state;
-      switch (key) {
-        case `all`:
-          state = `checked`;
-          break;
-        case `overdue`:
-          state = `disabled`;
-          break;
-        case `today`:
-          state = `disabled`;
-          break;
-      }
-      return createFilter(key, filters[key], state);
-    }).join(``);
-
-  filtersBlock.innerHTML = filterElements;
-};
-
-const cardTemplate = `<form class="card__form" method="get">
-              <div class="card__inner">
+const createCardTemplate = (() => `<form class="card__form" method="get">
+    <div class="card__inner">
                 <div class="card__control">
                   <button type="button" class="card__btn card__btn--edit">
                     edit
@@ -340,15 +309,74 @@ Here is a card with filled data</textarea
                   <button class="card__save" type="submit">save</button>
                   <button class="card__delete" type="button">delete</button>
                 </div>
-              </div>
-            </form>`;
+              </div> 
+  </form>`
+);
 
 const createCard = (() => {
   const cardBlock = document.createElement(`article`);
-  cardBlock.classList.add(`card`, `card--blue`, `card--edit`, `card--deadline`);
-  cardBlock.innerHTML = cardTemplate;
-  boardTasksBlock.appendChild(cardBlock);
+  cardBlock.classList.add(`card`, `card--blue`, `card--deadline`);
+  cardBlock.innerHTML = createCardTemplate();
+  return cardBlock;
 });
 
-createFiltersElements(filters);
-createCard();
+const renderCards = ((countCards, container) => {
+  container.innerHTML = ``;
+  new Array(countCards)
+    .fill(createCard())
+    .map(() => container
+      .appendChild(createCard())
+    );
+});
+
+/* Фильтры */
+const createFilterTemplate = ((filterId, filterName, inputState = ``) => `
+<input 
+  type="radio" id="filter__${ filterId }" 
+  class="filter__input visually-hidden" 
+  name="filter" 
+  ${inputState}
+>
+<label 
+  for="filter__${ filterId }" 
+  class="filter__label">${ filterName }
+  <span class="filter__${ filterId }-count">${ getRandomFixValue(MIN_RANDOM_VALUE, MAX_RANDOM_VALUE) }</span>
+</label>
+`);
+
+const createFiltersElements = ((filtersObj) => {
+  const filtersKeys = Object.keys(filtersObj);
+  return filtersKeys
+    .map((key) => {
+      let state;
+      switch (key) {
+        case `all`:
+          state = `checked`;
+          break;
+        case `overdue`:
+          state = `disabled`;
+          break;
+        case `today`:
+          state = `disabled`;
+          break;
+      }
+      return createFilterTemplate(key, filters[key], state);
+    })
+    .join(``);
+});
+
+const renderFilters = ((container, filtersObj) => {
+  container.innerHTML = (createFiltersElements(filtersObj));
+  container.addEventListener(`click`, (evt) => onFilterLabelClickHandler(evt), true);
+});
+
+const onFilterLabelClickHandler = ((evt) => {
+  evt.stopPropagation();
+  renderCards(
+      getRandomFixValue(1, COUNT_CARDS),
+      boardTasksBlock
+  );
+});
+
+renderFilters(mainFiltersBlock, filters);
+renderCards(COUNT_CARDS, boardTasksBlock);
